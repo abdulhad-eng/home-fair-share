@@ -3,6 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Users, DollarSign, CheckSquare, Zap } from "lucide-react";
 
 export const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) => {
+  const handleGetStartedClick = () => {
+    console.log("Get Started button clicked!");
+    onGetStarted();
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex flex-col">
       {/* Hero Section */}
@@ -47,7 +51,7 @@ export const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) =>
         </div>
 
         <Button 
-          onClick={onGetStarted}
+          onClick={handleGetStartedClick}
           size="lg"
           className="w-full max-w-sm animate-slide-up"
           style={{ animationDelay: "0.3s" }}

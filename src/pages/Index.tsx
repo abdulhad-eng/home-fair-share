@@ -52,7 +52,10 @@ const Index = () => {
   const renderCurrentScreen = () => {
     switch (currentScreen) {
       case "welcome":
-        return <WelcomeScreen onGetStarted={() => setCurrentScreen("signup")} />;
+        return <WelcomeScreen onGetStarted={() => {
+          console.log("Welcome screen - transitioning to signup");
+          setCurrentScreen("signup");
+        }} />;
       
       case "signup":
         return (
