@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { OTPVerification } from "@/components/auth/otp-verification";
@@ -6,6 +6,7 @@ import { CreateHousehold } from "@/components/household/create-household";
 import { InviteMembers } from "@/components/household/invite-members";
 import { AddExpense } from "@/components/expenses/add-expense";
 import { HouseholdDashboard } from "@/components/dashboard/household-dashboard";
+import { useAuth } from "@/components/auth/auth-provider";
 
 type Screen = 
   | "welcome"
@@ -21,6 +22,14 @@ const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>("welcome");
   const [userData, setUserData] = useState<any>(null);
   const [householdData, setHouseholdData] = useState<any>(null);
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (user && !loading) {
+      // User is authenticated, check if they have a household or go to dashboard
+      setCurrentScreen("dashboard");
+    }
+  }, [user, loading]);
 
   const handleSignUpComplete = (data: any) => {
     setUserData(data);

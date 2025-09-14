@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Mail, Phone, User, Home } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/hooks/use-toast";
 
 interface SignUpFormProps {
   onBack: () => void;
@@ -17,16 +19,62 @@ export const SignUpForm = ({ onBack, onContinue, onSignIn }: SignUpFormProps) =>
     name: "",
     email: "",
     phone: "",
+    password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const { signUpWithEmail, signInWithGoogle, signInWithApple } = useAuth();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.phone) {
-      onContinue(formData);
+    if (formData.name && formData.email && formData.phone && formData.password) {
+      setLoading(true);
+      const { error } = await signUpWithEmail(formData.email, formData.password);
+      
+      if (error) {
+        toast({
+          title: "Signup Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Check your email",
+          description: "We sent you a confirmation link to complete your signup.",
+        });
+        onContinue(formData);
+      }
+      setLoading(false);
     }
   };
 
-  const isValid = formData.name && formData.email && formData.phone;
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      toast({
+        title: "Google Sign-in Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    const { error } = await signInWithApple();
+    if (error) {
+      toast({
+        title: "Apple Sign-in Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const isValid = formData.name && formData.email && formData.phone && formData.password;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex flex-col">
@@ -109,12 +157,24 @@ export const SignUpForm = ({ onBack, onContinue, onSignIn }: SignUpFormProps) =>
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                  />
+                </div>
+
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={!isValid}
+                  disabled={!isValid || loading}
                 >
-                  Sign Up
+                  {loading ? "Creating Account..." : "Sign Up"}
                 </Button>
               </form>
 
@@ -126,10 +186,20 @@ export const SignUpForm = ({ onBack, onContinue, onSignIn }: SignUpFormProps) =>
               </div>
 
               <div className="space-y-3">
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                >
                   Continue with Google
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleAppleSignIn}
+                  disabled={loading}
+                >
                   Continue with Apple
                 </Button>
               </div>
