@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { OTPVerification } from "@/components/auth/otp-verification";
 import { CreateHousehold } from "@/components/household/create-household";
 import { InviteMembers } from "@/components/household/invite-members";
 import { AddExpense } from "@/components/expenses/add-expense";
@@ -9,6 +10,8 @@ import { HouseholdDashboard } from "@/components/dashboard/household-dashboard";
 type Screen = 
   | "welcome"
   | "signup" 
+  | "otp-verification"
+  | "signin"
   | "create-household"
   | "invite-members"
   | "dashboard"
@@ -21,7 +24,15 @@ const Index = () => {
 
   const handleSignUpComplete = (data: any) => {
     setUserData(data);
+    setCurrentScreen("otp-verification");
+  };
+
+  const handleOTPVerified = () => {
     setCurrentScreen("create-household");
+  };
+
+  const handleSignIn = () => {
+    setCurrentScreen("signin");
   };
 
   const handleHouseholdCreated = (data: any) => {
@@ -48,13 +59,33 @@ const Index = () => {
           <SignUpForm 
             onBack={() => setCurrentScreen("welcome")}
             onContinue={handleSignUpComplete}
+            onSignIn={handleSignIn}
+          />
+        );
+      
+      case "otp-verification":
+        return (
+          <OTPVerification 
+            onBack={() => setCurrentScreen("signup")}
+            onVerify={handleOTPVerified}
+            contactMethod={userData?.email ? "email" : "phone"}
+            contactValue={userData?.email || userData?.phone || ""}
+          />
+        );
+      
+      case "signin":
+        return (
+          <SignUpForm 
+            onBack={() => setCurrentScreen("welcome")}
+            onContinue={() => setCurrentScreen("dashboard")}
+            onSignIn={() => setCurrentScreen("signup")}
           />
         );
       
       case "create-household":
         return (
           <CreateHousehold 
-            onBack={() => setCurrentScreen("signup")}
+            onBack={() => setCurrentScreen("otp-verification")}
             onContinue={handleHouseholdCreated}
           />
         );

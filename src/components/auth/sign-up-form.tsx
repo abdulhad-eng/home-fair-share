@@ -4,14 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, Mail, Phone, User, Home } from "lucide-react";
 
 interface SignUpFormProps {
   onBack: () => void;
   onContinue: (data: { name: string; email: string; phone: string }) => void;
+  onSignIn: () => void;
 }
 
-export const SignUpForm = ({ onBack, onContinue }: SignUpFormProps) => {
+export const SignUpForm = ({ onBack, onContinue, onSignIn }: SignUpFormProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,11 +40,24 @@ export const SignUpForm = ({ onBack, onContinue }: SignUpFormProps) => {
             <h1 className="text-2xl font-bold">Create Account</h1>
           </div>
 
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-gradient-primary">
+                <Home className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">RoomieSplit</h1>
+                <p className="text-sm text-muted-foreground">Fair living made simple</p>
+              </div>
+            </div>
+          </div>
+
           <Card className="border-0 shadow-primary animate-slide-up">
             <CardHeader className="text-center">
-              <CardTitle>Join RoomieSplit</CardTitle>
+              <CardTitle>Create your account</CardTitle>
               <CardDescription>
-                Enter your details to get started with fair roommate living
+                Join thousands making shared living fair and effortless
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -100,7 +114,7 @@ export const SignUpForm = ({ onBack, onContinue }: SignUpFormProps) => {
                   className="w-full"
                   disabled={!isValid}
                 >
-                  Continue
+                  Sign Up
                 </Button>
               </form>
 
@@ -120,7 +134,16 @@ export const SignUpForm = ({ onBack, onContinue }: SignUpFormProps) => {
                 </Button>
               </div>
 
-              <p className="text-xs text-center text-muted-foreground">
+              <div className="text-center mt-6">
+                <button 
+                  onClick={onSignIn}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Already have an account? <span className="text-primary font-medium">Sign in</span>
+                </button>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground mt-4">
                 By continuing, you agree to our Terms of Service and Privacy Policy
               </p>
             </CardContent>
