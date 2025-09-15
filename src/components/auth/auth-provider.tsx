@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import {
+  signInWithEmail as firebaseSignInWithEmail,
+  signUpWithEmail as firebaseSignUpWithEmail,
+  signInWithGoogle as firebaseSignInWithGoogle,
+  signInWithApple as firebaseSignInWithApple,
+  logout as firebaseLogout,
+  getErrorMessage
+} from '@/lib/firebase-auth';
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signUpWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -29,84 +36,50 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    const { error } = await firebaseSignInWithEmail(email, password);
+    return { error: error ? { message: getErrorMessage(error) } : null };
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
-    });
-    return { error };
+    const { error } = await firebaseSignUpWithEmail(email, password);
+    return { error: error ? { message: getErrorMessage(error) } : null };
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
-    });
-    return { error };
+    const { error } = await firebaseSignInWithGoogle();
+    return { error: error ? { message: getErrorMessage(error) } : null };
   };
 
   const signInWithApple = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
-    });
-    return { error };
+    const { error } = await firebaseSignInWithApple();
+    return { error: error ? { message: getErrorMessage(error) } : null };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    const { error } = await firebaseLogout();
+    return { error: error ? { message: getErrorMessage(error) } : null };
   };
 
   const value = {
     user,
-    session,
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
     signInWithApple,
     signOut,
-    loading,
+    loading: loading || false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

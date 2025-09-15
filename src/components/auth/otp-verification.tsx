@@ -1,32 +1,136 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
 import { ArrowLeft, Mail, Phone, Home } from "lucide-react";
+import { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
+import { initializeRecaptcha, signInWithPhone, verifyPhoneCode, getErrorMessage } from "@/lib/firebase-auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface OTPVerificationProps {
   onBack: () => void;
   onVerify: () => void;
   contactMethod: string; // email or phone
   contactValue: string; // the actual email or phone number
+  confirmationResult?: ConfirmationResult; // Firebase phone auth confirmation result
 }
 
-export const OTPVerification = ({ onBack, onVerify, contactMethod, contactValue }: OTPVerificationProps) => {
+export const OTPVerification = ({ onBack, onVerify, contactMethod, contactValue, confirmationResult }: OTPVerificationProps) => {
   const [otp, setOtp] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [currentConfirmation, setCurrentConfirmation] = useState<ConfirmationResult | undefined>(confirmationResult);
+  const recaptchaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const handleVerify = () => {
+  useEffect(() => {
+    // Initialize reCAPTCHA for phone verification if needed
+    if (contactMethod === 'phone' && !currentConfirmation) {
+      const sendOTP = async () => {
+        try {
+          const recaptchaVerifier = initializeRecaptcha('recaptcha-container');
+          const { confirmationResult, error } = await signInWithPhone(contactValue, recaptchaVerifier);
+          
+          if (error) {
+            toast({
+              title: "Failed to send OTP",
+              description: getErrorMessage(error),
+              variant: "destructive",
+            });
+          } else if (confirmationResult) {
+            setCurrentConfirmation(confirmationResult);
+            toast({
+              title: "OTP sent",
+              description: `Verification code sent to ${contactValue}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to initialize phone verification",
+            variant: "destructive",
+          });
+        }
+      };
+
+      sendOTP();
+    }
+  }, [contactMethod, contactValue, currentConfirmation, toast]);
+
+  const handleVerify = async () => {
     if (otp.length === 6) {
-      onVerify();
+      setIsVerifying(true);
+      
+      if (contactMethod === 'phone' && currentConfirmation) {
+        try {
+          const { user, error } = await verifyPhoneCode(currentConfirmation, otp);
+          
+          if (error) {
+            toast({
+              title: "Verification failed",
+              description: getErrorMessage(error),
+              variant: "destructive",
+            });
+          } else if (user) {
+            toast({
+              title: "Phone verified",
+              description: "Your phone number has been verified successfully!",
+            });
+            onVerify();
+          }
+        } catch (error) {
+          toast({
+            title: "Verification failed",
+            description: "Invalid verification code",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // For email verification, just proceed (email verification is handled differently in Firebase)
+        onVerify();
+      }
+      
+      setIsVerifying(false);
     }
   };
 
   const handleResend = async () => {
     setIsResending(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsResending(false);
-    }, 2000);
+    
+    if (contactMethod === 'phone') {
+      try {
+        const recaptchaVerifier = initializeRecaptcha('recaptcha-container-resend');
+        const { confirmationResult, error } = await signInWithPhone(contactValue, recaptchaVerifier);
+        
+        if (error) {
+          toast({
+            title: "Failed to resend OTP",
+            description: getErrorMessage(error),
+            variant: "destructive",
+          });
+        } else if (confirmationResult) {
+          setCurrentConfirmation(confirmationResult);
+          toast({
+            title: "OTP resent",
+            description: `New verification code sent to ${contactValue}`,
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to resend verification code",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // For email, show a message (Firebase handles email verification differently)
+      toast({
+        title: "Check your email",
+        description: "Please check your email for the verification link",
+      });
+    }
+    
+    setIsResending(false);
   };
 
   const isValid = otp.length === 6;
@@ -85,10 +189,14 @@ export const OTPVerification = ({ onBack, onVerify, contactMethod, contactValue 
               <Button 
                 onClick={handleVerify}
                 className="w-full"
-                disabled={!isValid}
+                disabled={!isValid || isVerifying}
               >
-                Verify & Continue
+                {isVerifying ? "Verifying..." : "Verify & Continue"}
               </Button>
+
+              {/* Hidden reCAPTCHA containers for Firebase phone auth */}
+              <div id="recaptcha-container" style={{ display: 'none' }}></div>
+              <div id="recaptcha-container-resend" style={{ display: 'none' }}></div>
 
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-2">
